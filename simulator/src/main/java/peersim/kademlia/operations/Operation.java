@@ -35,7 +35,7 @@ public abstract class Operation {
   protected long timestamp = 0;
 
   /** Number of hops the message did */
-  protected int nrHops = 0;
+  protected int nrHops;
 
   protected ArrayList<BigInteger> returned;
 
@@ -53,7 +53,7 @@ public abstract class Operation {
     this.timestamp = timestamp;
     this.destNode = dstNode;
     this.srcNode = srcNode;
-
+    this.nrHops = 0;
     // set a new find ID
     operationId = OPERATION_ID_GENERATOR++;
     this.messages = new ArrayList<>();
@@ -109,8 +109,8 @@ public abstract class Operation {
     return nrHops;
   }
 
-  public void setHops(int nrHops) {
-    this.nrHops = nrHops;
+  public void addHops(int nrHops) {
+    this.nrHops += nrHops;
   }
 
   public void increaseHops() {

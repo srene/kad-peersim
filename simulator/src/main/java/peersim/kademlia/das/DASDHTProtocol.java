@@ -7,7 +7,6 @@ import peersim.kademlia.Message;
 import peersim.kademlia.Util;
 import peersim.kademlia.das.operations.RandomSamplingOperationDHT;
 import peersim.kademlia.das.operations.SamplingOperation;
-import peersim.kademlia.das.operations.ValidatorSamplingOperation;
 import peersim.kademlia.das.operations.ValidatorSamplingOperationDHT;
 import peersim.kademlia.operations.GetOperation;
 import peersim.kademlia.operations.Operation;
@@ -33,6 +32,7 @@ public class DASDHTProtocol extends DASProtocol {
    * @param myPid the sender Pid
    */
   protected void handleInitNewBlock(Message m, int myPid) {
+    time = CommonState.getTime();
     currentBlock = (Block) m.body;
     kv.erase();
     samplesRequested = 0;
@@ -63,9 +63,13 @@ public class DASDHTProtocol extends DASProtocol {
 
       for (SamplingOperation sop : samplingOp.values()) {
         KademliaObserver.reportOperation(sop);
-        if (sop instanceof ValidatorSamplingOperation)
-          logger.warning("Sampling operation finished validator " + sop.getId());
-        else logger.warning("Sampling operation finished random " + sop.getId());
+        logger.warning(
+            "Sampling operation finished init "
+                + sop.getId()
+                + " "
+                + CommonState.getTime()
+                + " "
+                + sop.getTimestamp());
       }
       samplingOp.clear();
       kadOps.clear();
@@ -148,7 +152,13 @@ public class DASDHTProtocol extends DASProtocol {
 
     op.elaborateResponse(kv.getAll().toArray(new Sample[0]));
     samplingOp.put(op.getId(), op);
-    logger.warning("Sampling operation started validator " + op.getId());
+    logger.warning(
+        "Sampling operation started validator "
+            + op.getId()
+            + " "
+            + KademliaCommonConfigDas.ALPHA
+            + " "
+            + timestamp);
 
     op.setAvailableRequests(KademliaCommonConfigDas.ALPHA);
     doSampling(op);
@@ -159,10 +169,14 @@ public class DASDHTProtocol extends DASProtocol {
     if (sop.completed()) {
       samplingOp.remove(sop.getId());
       KademliaObserver.reportOperation(sop);
-      // logger.warning("Sampling operation finished " + sop.getId());
-      if (sop instanceof ValidatorSamplingOperation)
-        logger.warning("Sampling operation finished validator dosampling " + sop.getId());
-      else logger.warning("Sampling operation finished random dosampling " + sop.getId());
+      logger.warning(
+          "Sampling operation finished dosampling "
+              + sop.getId()
+              + " "
+              + CommonState.getTime()
+              + " "
+              + sop.getTimestamp());
+
       return true;
     } else {
       boolean success = false;
@@ -197,7 +211,7 @@ public class DASDHTProtocol extends DASProtocol {
       if (sop != null && s != null && !sop.completed()) {
         Sample[] samples = {s};
         sop.elaborateResponse(samples);
-        sop.setHops(get.getHops());
+        sop.addHops(get.getHops());
         for (Long msg : get.getMessages()) {
           sop.addMessage(msg);
         }
@@ -209,8 +223,17 @@ public class DASDHTProtocol extends DASProtocol {
                 + " "
                 + sop.completed());
 
-        if (sop.completed()) KademliaObserver.reportOperation(sop);
-        else doSampling(sop);
+        if (sop.completed()) {
+          KademliaObserver.reportOperation(sop);
+          logger.warning(
+              "Sampling operation finished operationComplete "
+                  + sop.getId()
+                  + " "
+                  + CommonState.getTime()
+                  + " "
+                  + sop.getTimestamp());
+
+        } else doSampling(sop);
       }
     }
   }
